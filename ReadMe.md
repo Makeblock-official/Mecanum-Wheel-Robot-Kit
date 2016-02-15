@@ -57,7 +57,9 @@ __Video:__ https://www.youtube.com/watch?v=FpP2oDS91r8&feature=youtu.be
 
 ### FAQ
 
+``` 
 (1) Q: When I try to use handle to control this robot, why doesn’t the robot move?
+```
 
 A: Please check carefully whether the green LED on USB Host module is on or not. If the green LED is off, please reset the Me Orion board or re-insert the USB receiver. Then press the “Mode” button on the Handle till the green LED and the red LED are solid on. 
 
@@ -88,6 +90,3 @@ http://learn.makeblock.cc/driver_installation/
 ```
 
 A: According to your own situation, please adjust the baffle bracket of the sticks into a movable status with vice or other tools.
-
-
-
