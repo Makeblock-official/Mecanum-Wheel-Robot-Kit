@@ -1,6 +1,6 @@
 # Mecanum Wheel Robot Kit
 
-Kitpage: [http://www.makeblock.cc/mecanum-wheel-robot-kit/](http://www.makeblock.cc/mecanum-wheel-robot-kit/)
+Kit page: [http://www.makeblock.cc/mecanum-wheel-robot-kit/](http://www.makeblock.cc/mecanum-wheel-robot-kit/)
 
 
 
