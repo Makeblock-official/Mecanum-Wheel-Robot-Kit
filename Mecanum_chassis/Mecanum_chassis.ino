@@ -1,244 +1,214 @@
-//  Please download the Makeblock library from: https://github.com/Makeblock-official/Makeblock-Libraries
-//  Press the "Mode" key until the red LED and the green LED are both on.
-
-#include <Wire.h>
-#include <SoftwareSerial.h>
 #include "MeOrion.h"
+//#include <Arduino.h>
+#include "SoftwareSerial.h"
+#include <Wire.h>
 
-MeUSBHost joypad(PORT_3);
-//  The code of joypad (when the red LED is on)
-//  default£º128-127-128-127-15-0-0-128
-//  left one£º128-127-128-127-15-1-0-128
-//  right one£º128-127-128-127-15-2-0-128
-//  left two£º128-127-128-127-15-4-0-128
-//  right two£º128-127-128-127-15-8-0-128
-//  triangle£º128-127-128-127-31-0-0-128 £¨0001 1111£©
-//  square£º128-127-128-127-143-0-0-128 £¨1000 1111£©
-//  cross£º128-127-128-127-79-0-0-128 £¨0100 1111£©
-//  circle£º128-127-128-127-47-0-0-128 £¨0010 1111£©
-//  left joystick press down: 128-127-128-127-15-64-0-128
-//  right joystick press down: 128-127-128-127-15-128-0-128
-//  up£º128-127-128-127-0-0-0-128 £¨0000 0000£©
-//  down£º128-127-128-127-4-0-0-128 £¨0000 0100£©
-//  left£º128-127-128-127-6-0-0-128 £¨0000 0110£©
-//  right£º128-127-128-127-2-0-0-128 £¨0000 0010£©
-//  left-up£º128-127-128-127-7-0-0-128 £¨0000 0111£©
-//  left-down£º128-127-128-127-5-0-0-128 £¨0000 0101£©
-//  right-up£º128-127-128-127-1-0-0-128 £¨0000 0001£©
-//  right-down£º128-127-128-127-3-0-0-128 £¨0000 0011£©
-//  select£º128-127-128-127-15-16-0-128
-//  start£º128-127-128-127-15-32-0-128
-//  joystick£ºrightX-rightY-leftX-leftY-15-0-0-128
+MeUSBHost usbhost(PORT_3);
 
-//  map the pins to the wheels/motors
-#define PIN_MOTOR_1	10
-#define PIN_MOTOR_2	11
-#define PIN_MOTOR_3	9
-#define PIN_MOTOR_4	3
+MeEncoderNew motor1(0x09, SLOT1); 
+MeEncoderNew motor2(0x09, SLOT2); 
 
-float linearSpeed = 50;
-float angularSpeed = 50;
-float maxLinearSpeed = 120;
-float maxAngularSpeed = 120;
-float minLinearSpeed = 15;
-float minAngularSpeed = 15;
+#define PORT1_MOTOR1  11    //PWM Control Pin
+#define PORT1_MOTOR2  10
+#define PORT2_MOTOR1  3
+#define PORT2_MOTOR2  9
+
+int moveSpeed = 125;
+uint8_t moveSpeed_FW =0;
+uint8_t moveSpeed_BW =0;
+unsigned char stop_flag=0;
 
 void setup()
 {
-	pinMode(PIN_MOTOR_1, OUTPUT);
-	pinMode(PIN_MOTOR_2, OUTPUT);
-	pinMode(PIN_MOTOR_3, OUTPUT);
-	pinMode(PIN_MOTOR_4, OUTPUT);
 
-	joypad.init(USB1_0);
+  usbhost.init(USB1_0);   //USB Remote Control Handle Initialization
+  Serial.begin(9600);
+  motor1.begin();
+  motor2.begin();
+  motor1.setMode(1);  //0:I2C_MODE;1:PWM_MODE;2:PWM_I2C_PWM;
+  motor2.setMode(1);
+  pinMode(PORT1_MOTOR1, OUTPUT);
+  pinMode(PORT1_MOTOR2, OUTPUT);
+  pinMode(PORT2_MOTOR1, OUTPUT);
+  pinMode(PORT2_MOTOR2, OUTPUT);  
+
 }
 
 void loop()
 {
-	if (!joypad.device_online)
-	{
-		joypad.probeDevice();
-		delay(1000);
-	}
-	else
-	{
-		int len = joypad.host_recv();
-		parseJoystick(joypad.RECV_BUFFER);
-		delay(5);
-	}
+ control();
+ moveSpeed_FW=moveSpeed/2+125;    //Speed conversion
+ moveSpeed_BW=125-moveSpeed/2;
 }
 
 
-void setEachMotorSpeed(float speed1, float speed2, float speed3, float speed4)
+void parseJoystick(unsigned char * buf)
 {
-	if ((fabs(speed1) < 3) && (fabs(speed2) < 3) && (fabs(speed3) < 3) && (fabs(speed4) < 3))
-	{
-		analogWrite(PIN_MOTOR_1, 0);
-		analogWrite(PIN_MOTOR_2, 0);
-		analogWrite(PIN_MOTOR_3, 0);
-		analogWrite(PIN_MOTOR_4, 0);
-	}
-	else
-	{
-		analogWrite(PIN_MOTOR_1, 128 - speed1);
-		analogWrite(PIN_MOTOR_2, 128 + speed2);
-		analogWrite(PIN_MOTOR_3, 128 + speed3);
-		analogWrite(PIN_MOTOR_4, 128 - speed4);
-	}
+  unsigned char temp2=buf[2];  //Remote control receive data
+  unsigned char temp3=buf[3];
+  unsigned char temp4=buf[4];
+ 
+  if(temp2==128)
+  {
+    if(temp3==128)  
+    {
+        stop_flag++;
+        if(stop_flag>2)
+       {
+          Stop_run();    //Release the keys/Stop motor 
+          stop_flag=3;
+       }    
+    }
+    if(temp3==0) Forward_run();    //Forward keys (1 keys) 
+    if(temp3==255) Backward_rum(); //Backward keys (3 keys)
+  }
+  if(temp2==255)
+  {    
+    if(temp3==0)  RightUp_run();     //Forward and Right keys (1 and 2 keys) 
+    if(temp3==128)  Right_run();     //Right keys(2 keys)  
+    if(temp3==255)  RightDown_run(); //Backward and Right keys(2 and 3 keys)
+  }
+  if(temp2==0)
+  { 
+    if(temp3==0)  LeftUp_run();      //Forward and lift keys(1 and 4 keys)   
+    if(temp3==128)  Left_run();      //Life keys(4 keys) 
+    if(temp3==255)  LeftDown_run();  //Backward and Lift keys(3 and 4 keys)
+  }
+  
+   if(temp4==79)      //Fork keys(8 keys)
+  {
+     Speed_down();   //Speed Decrease
+  }
+  else if(temp4==31) //Triangle keys(7 keys)
+  {
+     Speed_up();     //Speed up
+  }
+  else if(temp4==143) //Square keys(5 keys)
+  {
+     TurnLeft_run();  //Spot Turn To Left
+     stop_flag=0;
+  }
+  else if(temp4==47) //Round keys(6 keys)
+  { 
+     TurnRight_run();//Spot Turn To Right
+     stop_flag=0;
+  }  
 }
 
-void parseJoystick(unsigned char *buf)   //Analytic function, print 8 bytes from USB Host
+void Forward_run() 
+{  
+  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_BW);
+}
+void Backward_rum() 
 {
-    //  Test the position and direction of wheels
-    //  Press the left one and two, and the right one and two.
-    //  Then press one of the 1:triangle/2:square/3:cross/4:circle and the up/down to test the wheels
-	if (15 == (buf[5]) & 0x0F)
-	{
-		char wheelNumber = 0;
-		char dir = 0;
-
-		switch (buf[4] | 0x0F)
-		{
-		case 31:
-			wheelNumber = 1;
-			break;
-		case 143:
-			wheelNumber = 2;
-			break;
-		case 79:
-			wheelNumber = 3;
-			break;
-		case 47:
-			wheelNumber = 4;
-			break;
-		default:
-			wheelNumber = 0;
-			break;
-		}
-		switch (buf[4] & 0x0F)
-		{
-		case 0:
-		case 1:
-		case 7:
-			dir = 1;
-			break;
-		case 3:
-		case 4:
-		case 5:
-			dir = -1;
-			break;
-		default:
-			dir = 0;
-			break;
-		}
-
-		analogWrite(PIN_MOTOR_1, 128 + (!!(1 == wheelNumber)) * 100 * dir);
-		analogWrite(PIN_MOTOR_2, 128 + (!!(2 == wheelNumber)) * 100 * dir);
-		analogWrite(PIN_MOTOR_3, 128 + (!!(3 == wheelNumber)) * 100 * dir);
-		analogWrite(PIN_MOTOR_4, 128 + (!!(4 == wheelNumber)) * 100 * dir);
-	}
-	else    //  normal control mode
-	{
-		//  increase/decrease the speed
-		switch (buf[5])
-		{
-		case 1:
-			linearSpeed += 3;
-			if (linearSpeed > maxLinearSpeed)
-			{
-				linearSpeed = maxLinearSpeed;
-			}
-			break;
-		case 2:
-			angularSpeed += 3;
-			if (angularSpeed > maxAngularSpeed)
-			{
-				angularSpeed = maxAngularSpeed;
-			}
-			break;
-		case 4:
-			linearSpeed -= 3;
-			if (linearSpeed < minLinearSpeed)
-			{
-				linearSpeed = minLinearSpeed;
-			}
-			break;
-		case 8:
-			angularSpeed -= 3;
-			if (angularSpeed < minAngularSpeed)
-			{
-				angularSpeed = minAngularSpeed;
-			}
-			break;
-		default:
-			break;
-		}
-
-		if ((128 != buf[0]) || (127 != buf[1]) || (128 != buf[2]) || (127 != buf[3]))
-		{
-            //  the joystick
-			float x = ((float)(buf[2]) - 127) / 128;
-			float y = (127 - (float)(buf[3])) / 128;
-			float a = (127 - (float)(buf[0])) / 128;
-			mecanumRun(x * linearSpeed, y * linearSpeed, a * angularSpeed);
-		}
-		else
-		{
-            //  the direction keys
-			switch (buf[4])
-			{
-			case 0:
-				mecanumRun(0, linearSpeed, 0);
-				break;
-			case 4:
-				mecanumRun(0, -linearSpeed, 0);
-				break;
-			case 6:
-				mecanumRun(-linearSpeed, 0, 0);
-				break;
-			case 2:
-				mecanumRun(linearSpeed, 0, 0);
-				break;
-			case 7:
-				mecanumRun(-linearSpeed / 2, linearSpeed / 2, 0);
-				break;
-			case 5:
-				mecanumRun(-linearSpeed / 2, -linearSpeed / 2, 0);
-				break;
-			case 1:
-				mecanumRun(linearSpeed / 2, linearSpeed / 2, 0);
-				break;
-			case 3:
-				mecanumRun(linearSpeed / 2, -linearSpeed / 2, 0);
-				break;
-			default:
-				mecanumRun(0, 0, 0);
-				break;
-			}
-		}
-	}
+  analogWrite(PORT1_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_FW);
 }
-
-//  motion control
-void mecanumRun(float xSpeed, float ySpeed, float aSpeed)
+void Right_run()  
 {
-	float speed1 = ySpeed - xSpeed + aSpeed;
-	float speed2 = ySpeed + xSpeed - aSpeed;
-	float speed3 = ySpeed - xSpeed - aSpeed;
-	float speed4 = ySpeed + xSpeed + aSpeed;
-
-	float max = speed1;
-	if (max < speed2)   max = speed2;
-	if (max < speed3)   max = speed3;
-	if (max < speed4)   max = speed4;
-
-	if (max > maxLinearSpeed)
-	{
-		speed1 = speed1 / max * maxLinearSpeed;
-		speed2 = speed2 / max * maxLinearSpeed;
-		speed3 = speed3 / max * maxLinearSpeed;
-		speed4 = speed4 / max * maxLinearSpeed;
-	}
-
-	setEachMotorSpeed(speed1, speed2, speed3, speed4);
+  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_FW);
 }
+void Left_run()  
+{
+  analogWrite(PORT1_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_BW);
+}
+void RightUp_run()
+{
+  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT1_MOTOR2, 127);
+  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR2, 127);
+}
+void RightDown_run()
+{
+  analogWrite(PORT1_MOTOR1, 127);
+  analogWrite(PORT1_MOTOR2, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR1, 127);
+  analogWrite(PORT2_MOTOR2, moveSpeed_FW);
+}
+void LeftUp_run()
+{
+  analogWrite(PORT1_MOTOR1, 127);
+  analogWrite(PORT1_MOTOR2, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR1, 127);
+  analogWrite(PORT2_MOTOR2, moveSpeed_BW);
+}
+void LeftDown_run()
+{
+  analogWrite(PORT1_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT1_MOTOR2, 127);
+  analogWrite(PORT2_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR2, 127);
+}
+void TurnRight_run()
+{
+  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_BW);
+}
+void TurnLeft_run()
+{
+  analogWrite(PORT1_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_FW);
+}
+
+void Speed_up()
+{
+  moveSpeed=moveSpeed+3;
+  if(moveSpeed>250)  moveSpeed=250;
+}
+void Speed_down()
+{
+   moveSpeed=moveSpeed-3;
+  if(moveSpeed<0)  moveSpeed=0;
+}
+void Stop_run()
+{
+  analogWrite(PORT1_MOTOR1, 127);
+  analogWrite(PORT1_MOTOR2, 127);
+  analogWrite(PORT2_MOTOR1, 127);
+  analogWrite(PORT2_MOTOR2, 127);
+}
+
+void control()
+{
+  if(!usbhost.device_online)
+  {
+   usbhost.probeDevice();//Device is not online ,initialization   
+    delay(100);
+  }
+  else
+  {
+    int len = usbhost.host_recv();//Read data length
+    parseJoystick(usbhost.RECV_BUFFER);
+    delay(5);
+  }
+}
+
+
+void parseJoystick1(unsigned char *buf)   //Analytic function, print 8 bytes from USB Host
+{
+  int i = 0;
+  for(i = 0; i < 7; i++)
+  {
+    Serial.print(buf[i]);  //It won't work if you connect to the Makeblock Orion.
+    Serial.print('-');
+  }
+  Serial.println(buf[7]);
+  delay(10);
+}
+
