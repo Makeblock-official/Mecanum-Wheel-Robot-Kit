@@ -15,6 +15,7 @@
 * History:
 * <Author>         <Time>         <Version>        <Descr>
 * Zzipeng          2016/12/29     09.01.001        fix some bug
+* Zzipeng          2017/02/13     09.01.002        repair some bug
 **************************************************************************/
 MeUSBHost usbhost(PORT_3);
 
@@ -42,7 +43,7 @@ RCDATA Rcdata;
 int moveSpeed = DEFAULTSPEED,motor1speed=0,motor2speed=0,motor3speed=0,motor4speed=0;
 unsigned char stop_flag=0;
 unsigned char Rc_Flag = 0;
-signed char Martix[4]={-1,1,1,-1};//this array is set to motor's direction   changed the symbol to change the motor's direction
+signed char Martix[4]={1,-1,-1,1};//this array is set to motor's direction   changed the symbol to change the motor's direction
 
 void parseJoystick(unsigned char * buf)
 {
@@ -175,21 +176,21 @@ void Forward_run()
 
  void Right_run()
 {
-  motor1.runSpeed(motor1speed,0);
-  motor2.runSpeed(-motor2speed,0);
-  motor3.runSpeed(motor3speed,0);
-  motor4.runSpeed(-motor4speed,0);
- }
-
- void Left_run()
-{
   motor1.runSpeed(-motor1speed,0);
   motor2.runSpeed(motor2speed,0);
   motor3.runSpeed(-motor3speed,0);
   motor4.runSpeed(motor4speed,0);
  }
+
+ void Left_run()
+{
+  motor1.runSpeed(motor1speed,0);
+  motor2.runSpeed(-motor2speed,0);
+  motor3.runSpeed(motor3speed,0);
+  motor4.runSpeed(-motor4speed,0);
+ }
  
-void RightUp_run()
+void LeftUp_run()
 {
   motor1.runSpeed(motor1speed,0);
   motor2.runSpeed(0,0);
@@ -197,7 +198,7 @@ void RightUp_run()
   motor4.runSpeed(0,0);
 }
 
-void RightDown_run()
+void LeftDown_run()
 {
   motor1.runSpeed(0,0);
   motor2.runSpeed(-motor2speed,0);
@@ -206,7 +207,7 @@ void RightDown_run()
  
 }
 
-void LeftUp_run()
+void RightUp_run()
 {
   motor1.runSpeed(0,0);
   motor2.runSpeed(motor2speed,0);
@@ -214,7 +215,7 @@ void LeftUp_run()
   motor4.runSpeed(motor4speed,0);
 }
 
-void LeftDown_run()
+void RightDown_run()
 {
   motor1.runSpeed(-motor1speed,0);
   motor2.runSpeed(0,0);
@@ -224,18 +225,18 @@ void LeftDown_run()
 
 void TurnRight_run()
 {
-  motor1.runSpeed(motor1speed,0);
-  motor2.runSpeed(-motor2speed,0);
-  motor3.runSpeed(-motor3speed,0);
-  motor4.runSpeed(motor4speed,0);
-}
-
-void TurnLeft_run()
-{
   motor1.runSpeed(-motor1speed,0);
   motor2.runSpeed(motor2speed,0);
   motor3.runSpeed(motor3speed,0);
   motor4.runSpeed(-motor4speed,0);
+}
+
+void TurnLeft_run()
+{
+  motor1.runSpeed(motor1speed,0);
+  motor2.runSpeed(-motor2speed,0);
+  motor3.runSpeed(-motor3speed,0);
+  motor4.runSpeed(motor4speed,0);
 }
 
 void Speed_up()
@@ -274,6 +275,7 @@ void setup() {
   motor3.runSpeed(0);
   motor4.runSpeed(0);
   Serial.begin(9600);
+  Serial.println("ok");
 }
 
 void loop() {

@@ -7,6 +7,8 @@ MeUSBHost usbhost(PORT_3);
 
 MeEncoderNew motor1(0x09, SLOT1); 
 MeEncoderNew motor2(0x09, SLOT2); 
+MeEncoderNew motor3(0x0a, SLOT1); 
+MeEncoderNew motor4(0x0a, SLOT2); 
 
 #define PORT1_MOTOR1  11    //PWM Control Pin
 #define PORT1_MOTOR2  10
@@ -20,18 +22,32 @@ unsigned char stop_flag=0;
 
 void setup()
 {
-
   usbhost.init(USB1_0);   //USB Remote Control Handle Initialization
   Serial.begin(9600);
   motor1.begin();
   motor2.begin();
+  motor3.begin();
+  motor4.begin();
+  
+  motor1.reset();
+  motor2.reset();
+  motor3.reset();
+  motor4.reset();
+
   motor1.setMode(1);  //0:I2C_MODE;1:PWM_MODE;2:PWM_I2C_PWM;
   motor2.setMode(1);
+  motor3.setMode(1);  //0:I2C_MODE;1:PWM_MODE;2:PWM_I2C_PWM;
+  motor4.setMode(1);
+
   pinMode(PORT1_MOTOR1, OUTPUT);
   pinMode(PORT1_MOTOR2, OUTPUT);
   pinMode(PORT2_MOTOR1, OUTPUT);
-  pinMode(PORT2_MOTOR2, OUTPUT);  
+  pinMode(PORT2_MOTOR2, OUTPUT);
 
+  analogWrite(PORT1_MOTOR1, 127);
+  analogWrite(PORT1_MOTOR2, 127);
+  analogWrite(PORT2_MOTOR1, 127);
+  analogWrite(PORT2_MOTOR2, 127);
 }
 
 void loop()
@@ -97,17 +113,17 @@ void parseJoystick(unsigned char * buf)
 
 void Forward_run() 
 {  
-  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
-  analogWrite(PORT1_MOTOR2, moveSpeed_FW);
-  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
-  analogWrite(PORT2_MOTOR2, moveSpeed_BW);
-}
-void Backward_rum() 
-{
   analogWrite(PORT1_MOTOR1, moveSpeed_FW);
   analogWrite(PORT1_MOTOR2, moveSpeed_BW);
   analogWrite(PORT2_MOTOR1, moveSpeed_BW);
   analogWrite(PORT2_MOTOR2, moveSpeed_FW);
+}
+void Backward_rum() 
+{
+  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
+  analogWrite(PORT1_MOTOR2, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
+  analogWrite(PORT2_MOTOR2, moveSpeed_BW);
 }
 void Right_run()  
 {
@@ -118,33 +134,37 @@ void Right_run()
 }
 void Left_run()  
 {
+//  analogWrite(PORT1_MOTOR1, moveSpeed_BW);
+//  analogWrite(PORT1_MOTOR2, moveSpeed_BW);
+//  analogWrite(PORT2_MOTOR1, moveSpeed_FW);
+//  analogWrite(PORT2_MOTOR2, moveSpeed_FW);
   analogWrite(PORT1_MOTOR1, moveSpeed_FW);
   analogWrite(PORT1_MOTOR2, moveSpeed_FW);
   analogWrite(PORT2_MOTOR1, moveSpeed_BW);
   analogWrite(PORT2_MOTOR2, moveSpeed_BW);
 }
-void RightUp_run()
+void RightDown_run()
 {
   analogWrite(PORT1_MOTOR1, moveSpeed_BW);
   analogWrite(PORT1_MOTOR2, 127);
   analogWrite(PORT2_MOTOR1, moveSpeed_FW);
   analogWrite(PORT2_MOTOR2, 127);
 }
-void RightDown_run()
+void RightUp_run()
 {
   analogWrite(PORT1_MOTOR1, 127);
   analogWrite(PORT1_MOTOR2, moveSpeed_BW);
   analogWrite(PORT2_MOTOR1, 127);
   analogWrite(PORT2_MOTOR2, moveSpeed_FW);
 }
-void LeftUp_run()
+void LeftDown_run()
 {
   analogWrite(PORT1_MOTOR1, 127);
   analogWrite(PORT1_MOTOR2, moveSpeed_FW);
   analogWrite(PORT2_MOTOR1, 127);
   analogWrite(PORT2_MOTOR2, moveSpeed_BW);
 }
-void LeftDown_run()
+void LeftUp_run()
 {
   analogWrite(PORT1_MOTOR1, moveSpeed_FW);
   analogWrite(PORT1_MOTOR2, 127);
